@@ -1,75 +1,146 @@
-import { STORAGE_KEYS, DEFAULT_USER_PARAMS } from './constants.js';
+import { DEFAULT_USER_PARAMS } from './constants.js';
+import {
+  getCurrentSession,
+  signUp,
+  signIn,
+  signOut,
+  onAuthChange,
+  getProfile,
+  upsertProfile,
+  getGoals,
+  upsertGoals,
+  listTrainings,
+  insertTraining,
+  updateTrainingRow,
+  deleteTrainingRow,
+  subscribeTrainings
+} from './supabase.js';
 
 const listeners = new Set();
-
-function read(key, fallback){
-  try{ const v = JSON.parse(localStorage.getItem(key)); return v ?? fallback; }catch{ return fallback; }
-}
-function write(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
+let _session = null;
+let _trainings = [];
+let _userParams = DEFAULT_USER_PARAMS;
+let _goals = { weeklySessions: 3, weeklyCalories: 2000 };
+let unsubscribeRealtime = () => {};
 
 const state = {
-  get users(){ return read(STORAGE_KEYS.users, []); },
-  set users(v){ write(STORAGE_KEYS.users, v); notify(); },
+  get session(){ return _session; },
+  set session(v){ _session = v; notify(); },
 
-  get session(){ return read(STORAGE_KEYS.session, null); },
-  set session(v){ write(STORAGE_KEYS.session, v); notify(); },
+  get trainings(){ return _trainings; },
+  set trainings(v){ _trainings = v; notify(); },
 
-  get trainings(){ return read(STORAGE_KEYS.trainings, []); },
-  set trainings(v){ write(STORAGE_KEYS.trainings, v); notify(); },
+  get userParams(){ return _userParams; },
+  set userParams(v){ _userParams = v; notify(); },
 
-  get userParams(){ return read(STORAGE_KEYS.userParams, DEFAULT_USER_PARAMS); },
-  set userParams(v){ write(STORAGE_KEYS.userParams, v); notify(); },
-
-  get goals(){ return read(STORAGE_KEYS.goals, { weeklySessions: 3, weeklyCalories: 2000 }); },
-  set goals(v){ write(STORAGE_KEYS.goals, v); notify(); }
+  get goals(){ return _goals; },
+  set goals(v){ _goals = v; notify(); }
 };
 
 export function subscribe(fn){ listeners.add(fn); return () => listeners.delete(fn); }
 function notify(){ for(const fn of listeners) fn(); }
 
-export function createUser({ email, password }){
-  const users = state.users;
-  if(users.some(u => u.email === email)) throw new Error('Email déjà utilisé');
-  users.push({ id: crypto.randomUUID(), email, password });
-  state.users = users;
+async function loadAll(){
+  if(!_session) return;
+  const [params, goals, trainings] = await Promise.all([
+    getProfile(_session.userId),
+    getGoals(_session.userId),
+    listTrainings(_session.userId)
+  ]);
+  state.userParams = params || DEFAULT_USER_PARAMS;
+  state.goals = goals || { weeklySessions: 3, weeklyCalories: 2000 };
+  state.trainings = trainings;
 }
 
-export function login({ email, password }){
-  const user = state.users.find(u => u.email === email && u.password === password);
-  if(!user) throw new Error('Identifiants invalides');
-  state.session = { userId: user.id, email: user.email };
+export async function createUser({ email, password }){
+  await signUp(email, password);
+  await login({ email, password });
+  const s = state.session;
+  if(!s) throw new Error('Inscription échouée');
+  await Promise.all([
+    upsertProfile(s.userId, DEFAULT_USER_PARAMS),
+    upsertGoals(s.userId, { weeklySessions: 3, weeklyCalories: 2000 })
+  ]);
+  await loadAll();
+}
+
+export async function login({ email, password }){
+  const s = await signIn(email, password);
+  if(!s) throw new Error('Identifiants invalides');
+  state.session = s;
+  await loadAll();
+  setupRealtime();
   return state.session;
 }
 
-export function logout(){ state.session = null; }
-
-export function addTraining(t){
-  const trainings = state.trainings;
-  trainings.push({ id: crypto.randomUUID(), ...t });
-  state.trainings = trainings;
+export async function logout(){
+  await signOut();
+  unsubscribeRealtime();
+  state.session = null;
+  state.trainings = [];
+  state.userParams = DEFAULT_USER_PARAMS;
+  state.goals = { weeklySessions: 3, weeklyCalories: 2000 };
 }
 
-export function updateTraining(id, updates){
-  const trainings = state.trainings.map(t => t.id === id ? { ...t, ...updates } : t);
-  state.trainings = trainings;
+export async function addTraining(t){
+  if(!_session) return;
+  const row = await insertTraining(_session.userId, t);
+  state.trainings = [row, ...state.trainings];
 }
 
-export function deleteTraining(id){
-  const trainings = state.trainings.filter(t => t.id !== id);
-  state.trainings = trainings;
+export async function updateTraining(id, updates){
+  const row = await updateTrainingRow(id, updates);
+  state.trainings = state.trainings.map(t => t.id === id ? row : t);
+}
+
+export async function deleteTraining(id){
+  await deleteTrainingRow(id);
+  state.trainings = state.trainings.filter(t => t.id !== id);
 }
 
 export function getUserTrainings(){
-  const s = state.session; if(!s) return [];
-  return state.trainings.filter(t => t.userId === s.userId);
+  if(!_session) return [];
+  return state.trainings;
 }
 
-export function ensureSeed(){
-  if(!localStorage.getItem(STORAGE_KEYS.users)) write(STORAGE_KEYS.users, []);
-  if(!localStorage.getItem(STORAGE_KEYS.trainings)) write(STORAGE_KEYS.trainings, []);
-  if(!localStorage.getItem(STORAGE_KEYS.session)) write(STORAGE_KEYS.session, null);
-  if(!localStorage.getItem(STORAGE_KEYS.userParams)) write(STORAGE_KEYS.userParams, DEFAULT_USER_PARAMS);
-  if(!localStorage.getItem(STORAGE_KEYS.goals)) write(STORAGE_KEYS.goals, { weeklySessions: 3, weeklyCalories: 2000 });
+export async function ensureSeed(){
+  const s = await getCurrentSession();
+  state.session = s;
+  if(s){ await loadAll(); setupRealtime(); }
+  onAuthChange((session)=>{
+    state.session = session;
+    if(session){ loadAll(); setupRealtime(); }
+    else { unsubscribeRealtime(); state.trainings=[]; state.userParams=DEFAULT_USER_PARAMS; state.goals={ weeklySessions:3, weeklyCalories:2000 }; }
+  });
 }
+
+function setupRealtime(){
+  unsubscribeRealtime();
+  if(!_session) return;
+  unsubscribeRealtime = subscribeTrainings(_session.userId, (payload)=>{
+    const { eventType, new: newRow, old: oldRow } = payload;
+    if(eventType === 'INSERT'){
+      const t = { id: newRow.id, userId: newRow.user_id, category: newRow.category, type: newRow.type, durationMin: newRow.duration_min, date: newRow.date, note: newRow.note||'' };
+      state.trainings = [t, ...state.trainings];
+    } else if(eventType === 'UPDATE'){
+      const t = { id: newRow.id, userId: newRow.user_id, category: newRow.category, type: newRow.type, durationMin: newRow.duration_min, date: newRow.date, note: newRow.note||'' };
+      state.trainings = state.trainings.map(x=> x.id===t.id ? t : x);
+    } else if(eventType === 'DELETE'){
+      const id = oldRow.id;
+      state.trainings = state.trainings.filter(x=> x.id !== id);
+    }
+  });
+}
+
+// Override setters to persist to Supabase
+Object.defineProperty(state, 'goals', {
+  get(){ return _goals; },
+  set(v){ _goals = v; if(_session){ upsertGoals(_session.userId, v).then(()=>notify()); } else { notify(); } }
+});
+
+Object.defineProperty(state, 'userParams', {
+  get(){ return _userParams; },
+  set(v){ _userParams = v; if(_session){ upsertProfile(_session.userId, v).then(()=>notify()); } else { notify(); } }
+});
 
 export default state;

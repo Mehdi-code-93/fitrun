@@ -1,0 +1,4 @@
+bdd-password : fitrun-esgi
+Project ID : opamvnsspdigpltybqhf
+project url : https://opamvnsspdigpltybqhf.supabase.co
+Publishable key : sb_publishable_TwcLptyYFbGV9-iBBKW_mw_IsSXdzsR

@@ -36,7 +36,7 @@ class ViewAuth extends HTMLElement{
 
     this.querySelector('#toggle').addEventListener('click', (e)=>{ e.preventDefault(); this.render(mode==='login'?'register':'login'); });
 
-    this.querySelector('#authForm').addEventListener('submit', (e)=>{
+    this.querySelector('#authForm').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const form = new FormData(e.currentTarget);
       const email = String(form.get('email')||'').trim();
@@ -45,11 +45,11 @@ class ViewAuth extends HTMLElement{
       msg.textContent = '';
       try{
         if(this.mode==='register'){
-          createUser({ email, password });
+          await createUser({ email, password });
           msg.textContent = 'Compte créé. Vous pouvez vous connecter.';
           this.render('login');
         } else {
-          login({ email, password });
+          await login({ email, password });
           location.hash = '#dashboard';
         }
       }catch(err){
