@@ -52,13 +52,13 @@ async function loadAll(){
   state.trainings = trainings;
 }
 
-export async function createUser({ email, password }){
+export async function createUser({ email, password, firstName, lastName }){
   await signUp(email, password);
   await login({ email, password });
   const s = state.session;
   if(!s) throw new Error('Inscription échouée');
   await Promise.all([
-    upsertProfile(s.userId, DEFAULT_USER_PARAMS),
+    upsertProfile(s.userId, { ...DEFAULT_USER_PARAMS, firstName, lastName }),
     upsertGoals(s.userId, { weeklySessions: 3, weeklyCalories: 2000 })
   ]);
   await loadAll();

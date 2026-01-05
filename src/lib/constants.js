@@ -13,7 +13,7 @@ export const STORAGE_KEYS = {
   goals: 'fitdash_goals'
 };
 
-export const DEFAULT_USER_PARAMS = { weightKg: 70, heightCm: 175, age: 25 };
+export const DEFAULT_USER_PARAMS = { weightKg: 70, heightCm: 175, age: 25, firstName: null, lastName: null };
 
 export function getMetByCategory(categoryId){
   const cat = CATEGORIES.find(c => c.id === categoryId);

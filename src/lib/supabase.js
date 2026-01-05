@@ -36,8 +36,11 @@ export function onAuthChange(callback){
 }
 
 // Data access helpers
-export async function upsertProfile(userId, { weightKg, heightCm, age }){
-  const { error } = await supabase.from('profiles').upsert({ id: userId, weight_kg: weightKg, height_cm: heightCm, age });
+export async function upsertProfile(userId, { weightKg, heightCm, age, firstName, lastName }){
+  const profile = { id: userId, weight_kg: weightKg, height_cm: heightCm, age };
+  if(firstName !== undefined) profile.first_name = firstName;
+  if(lastName !== undefined) profile.last_name = lastName;
+  const { error } = await supabase.from('profiles').upsert(profile);
   if(error) throw error;
 }
 
@@ -45,7 +48,13 @@ export async function getProfile(userId){
   const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
   if(error) throw error;
   if(!data) return null;
-  return { weightKg: data.weight_kg, heightCm: data.height_cm, age: data.age };
+  return { 
+    weightKg: data.weight_kg, 
+    heightCm: data.height_cm, 
+    age: data.age,
+    firstName: data.first_name || null,
+    lastName: data.last_name || null
+  };
 }
 
 export async function upsertGoals(userId, { weeklySessions, weeklyCalories }){
