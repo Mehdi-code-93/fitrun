@@ -24,7 +24,7 @@ class NavBar extends HTMLElement{
 
     this.innerHTML = `
       <nav class="nav">
-        <div class="brand"><span class="logo"></span> <span>FitDash</span></div>
+        <div class="brand"><span>FitRun</span></div>
         <div style="display:flex;gap:6px;align-items:center;">
           ${session ? `
             ${link('dashboard','Tableau de bord')}

@@ -40,8 +40,8 @@ class ViewTraining extends HTMLElement{
             </div>
           </form>
         </section>
-        <section class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between">
+        <section class="card" style="height:500px;overflow:scroll">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
             <h2>Historique</h2>
             <select id="filterCat">
               <option value="all">Toutes catégories</option>
