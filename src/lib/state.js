@@ -84,18 +84,18 @@ export async function logout(){
 
 export async function addTraining(t){
   if(!_session) return;
-  const row = await insertTraining(_session.userId, t);
-  state.trainings = [row, ...state.trainings];
+  await insertTraining(_session.userId, t);
+  // Le realtime va automatiquement mettre à jour state.trainings via setupRealtime()
 }
 
 export async function updateTraining(id, updates){
-  const row = await updateTrainingRow(id, updates);
-  state.trainings = state.trainings.map(t => t.id === id ? row : t);
+  await updateTrainingRow(id, updates);
+  // Le realtime va automatiquement mettre à jour state.trainings via setupRealtime()
 }
 
 export async function deleteTraining(id){
   await deleteTrainingRow(id);
-  state.trainings = state.trainings.filter(t => t.id !== id);
+  // Le realtime va automatiquement mettre à jour state.trainings via setupRealtime()
 }
 
 export function getUserTrainings(){

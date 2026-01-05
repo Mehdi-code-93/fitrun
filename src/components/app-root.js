@@ -10,7 +10,7 @@ class AppRoot extends HTMLElement{
       <nav-bar></nav-bar>
       <main>
         <div id="outlet"></div>
-        <div class="footer">Projet ESGI - Suivi d’activité - Version statique</div>
+        <div class="footer">Projet Sport</div>
       </main>
     `;
     window.addEventListener('app:navigate', this.handleNavigate);
