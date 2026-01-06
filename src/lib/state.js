@@ -13,7 +13,9 @@ import {
   insertTraining,
   updateTrainingRow,
   deleteTrainingRow,
-  subscribeTrainings
+  subscribeTrainings,
+  updateUserEmail,
+  updateUserPassword
 } from './supabase.js';
 
 const listeners = new Set();
@@ -142,5 +144,22 @@ Object.defineProperty(state, 'userParams', {
   get(){ return _userParams; },
   set(v){ _userParams = v; if(_session){ upsertProfile(_session.userId, v).then(()=>notify()); } else { notify(); } }
 });
+
+// Update user email
+export async function updateEmail(newEmail){
+  if(!_session) throw new Error('Non connecté');
+  const updated = await updateUserEmail(newEmail);
+  if(updated){
+    state.session = { userId: updated.userId, email: updated.email };
+  }
+  return updated;
+}
+
+// Update user password
+export async function updatePassword(newPassword){
+  if(!_session) throw new Error('Non connecté');
+  if(!newPassword || newPassword.length < 4) throw new Error('Le mot de passe doit contenir au moins 4 caractères');
+  await updateUserPassword(newPassword);
+}
 
 export default state;

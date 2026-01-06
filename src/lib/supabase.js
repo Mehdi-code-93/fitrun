@@ -1,4 +1,3 @@
-// Use jsDelivr ESM transform for browser-compatible modules
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 const cfg = (typeof window !== 'undefined' && window.__FITDASH_ENV) ? window.__FITDASH_ENV : {};
@@ -35,7 +34,20 @@ export function onAuthChange(callback){
   });
 }
 
-// Data access helpers
+// Update user email
+export async function updateUserEmail(newEmail){
+  const { data, error } = await supabase.auth.updateUser({ email: newEmail });
+  if(error) throw error;
+  return data?.user ? { userId: data.user.id, email: data.user.email } : null;
+}
+
+// Update user password
+export async function updateUserPassword(newPassword){
+  const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+  if(error) throw error;
+  return data?.user;
+}
+
 export async function upsertProfile(userId, { weightKg, heightCm, age, firstName, lastName }){
   const profile = { id: userId, weight_kg: weightKg, height_cm: heightCm, age };
   if(firstName !== undefined) profile.first_name = firstName;

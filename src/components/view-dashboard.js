@@ -13,8 +13,6 @@ function kcalFor(row, weightKg){
 }
 
 function weeklyBuckets(rows){
-  // Last 8 weeks buckets by ISO week start
-  const weeks = [];
   const now = new Date();
   for(let i=7; i>=0; i--){
     const d = new Date(now); d.setDate(now.getDate() - i*7);
@@ -66,7 +64,16 @@ class ViewDashboard extends HTMLElement{
         </section>
       </div>
 
-      <div id="alerts" class="grid" style="margin-top:16px"></div>
+      <div class="grid two" style="margin-top:16px">
+        <section class="card">
+          <h2>Statut des objectifs</h2>
+          <div id="goalsStatus" style="display:flex;flex-direction:column;gap:16px;padding:16px 0"></div>
+        </section>
+        <section class="card">
+          <h2>Alertes</h2>
+          <div id="alerts" style="padding:16px 0"></div>
+        </section>
+      </div>
     `;
     this.unsubscribe = subscribe(()=> this.update());
     this.update();
@@ -85,15 +92,43 @@ class ViewDashboard extends HTMLElement{
     this.querySelector('#kpiMinutes').textContent = `${totalMinutes} min`;
     this.querySelector('#kpiCalories').textContent = `${Math.round(totalKcal)} kcal`;
 
-    // Alerts vs goals
-    const alerts = [];
+    // Statut des objectifs
     const goals = state.goals;
-    if(weekRows.length < goals.weeklySessions){ alerts.push(`Objectif séances non atteint: ${weekRows.length}/${goals.weeklySessions}`); }
-    if(totalKcal < goals.weeklyCalories){ alerts.push(`Objectif calories non atteint: ${Math.round(totalKcal)}/${goals.weeklyCalories} kcal`); }
-    const alertsWrap = this.querySelector('#alerts');
-    alertsWrap.innerHTML = alerts.length? alerts.map(a=>`<div class="alert">${a}</div>`).join('') : `<div class="card empty">Aucune alerte</div>`;
+    const currentSessions = weekRows.length;
+    const currentCalories = totalKcal;
+    const sessionsReached = goals.weeklySessions > 0 && currentSessions >= goals.weeklySessions;
+    const caloriesReached = goals.weeklyCalories > 0 && currentCalories >= goals.weeklyCalories;
+    
+    const goalsStatusWrap = this.querySelector('#goalsStatus');
+    goalsStatusWrap.innerHTML = `
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-weight:600">Séances</span>
+          <span style="font-size:1.25rem;font-weight:700">${currentSessions} / ${goals.weeklySessions}</span>
+        </div>
+        <div style="background:var(--bg);height:8px;border-radius:4px;overflow:hidden;margin-bottom:4px">
+          <div style="background:${sessionsReached ? '#22c55e' : '#4f8cff'};height:100%;width:${goals.weeklySessions > 0 ? Math.min(100, (currentSessions / goals.weeklySessions) * 100) : 0}%;transition:width 0.3s"></div>
+        </div>
+        ${sessionsReached ? '<div style="color:#22c55e;font-size:0.875rem">Objectif atteint !</div>' : goals.weeklySessions > 0 ? `<div style="color:var(--muted);font-size:0.875rem">Il reste ${goals.weeklySessions - currentSessions} séance${goals.weeklySessions - currentSessions > 1 ? 's' : ''} à réaliser</div>` : '<div style="color:var(--muted);font-size:0.875rem">Aucun objectif défini</div>'}
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-weight:600">Calories</span>
+          <span style="font-size:1.25rem;font-weight:700">${Math.round(currentCalories)} / ${goals.weeklyCalories} kcal</span>
+        </div>
+        <div style="background:var(--bg);height:8px;border-radius:4px;overflow:hidden;margin-bottom:4px">
+          <div style="background:${caloriesReached ? '#22c55e' : '#f59e0b'};height:100%;width:${goals.weeklyCalories > 0 ? Math.min(100, (currentCalories / goals.weeklyCalories) * 100) : 0}%;transition:width 0.3s"></div>
+        </div>
+        ${caloriesReached ? '<div style="color:#22c55e;font-size:0.875rem">Objectif atteint !</div>' : goals.weeklyCalories > 0 ? `<div style="color:var(--muted);font-size:0.875rem">Il reste ${Math.round(goals.weeklyCalories - currentCalories)} kcal à brûler</div>` : '<div style="color:var(--muted);font-size:0.875rem">Aucun objectif défini</div>'}
+      </div>
+    `;
 
-    // Pie chart by category
+    // Alerts (pour les alertes générales si besoin)
+    const alerts = [];
+    const alertsWrap = this.querySelector('#alerts');
+    alertsWrap.innerHTML = alerts.length? alerts.map(a=>`<div class="alert">${a}</div>`).join('') : '<div style="color:var(--muted)">Aucune alerte</div>';
+
+
     const byCat = groupByCategory(rows);
     const labels = CATEGORIES.map(c=>c.label);
     const data = CATEGORIES.map(c=> byCat.get(c.id)||0);

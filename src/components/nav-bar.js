@@ -22,21 +22,19 @@ class NavBar extends HTMLElement{
     const userParams = state.userParams;
     const route = location.hash.replace('#','') || 'dashboard';
     const link = (hash, label) => `<a href="#${hash}" class="${route===hash?'active':''}">${label}</a>`;
-    const displayName = userParams?.firstName || session?.email || 'Utilisateur';
+    const displayName = userParams?.firstName || 'Utilisateur';
 
     this.innerHTML = `
       <nav class="nav">
         <div class="brand"><span>FitRun</span></div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          ${session ? `
-            ${link('dashboard','Tableau de bord')}
-            ${link('training','Entraînements')}
-            ${link('goals','Objectifs')}
-          ` : ''}
-        </div>
         <div style="display:flex;gap:8px;align-items:center;">
+        ${session ? `
+          ${link('dashboard','Tableau de bord')}
+          ${link('training','Entraînements')}
+          ${link('goals','Objectifs')}
+        ` : ''}
           ${session ? `
-            <span class="badge">${displayName}</span>
+            <a href="#account" class="badge" style="text-decoration:none;cursor:pointer">${displayName}</a>
             <button class="ghost" id="logoutBtn">Déconnexion</button>
           ` : `
             ${link('auth','Connexion')}
