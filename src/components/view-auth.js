@@ -11,6 +11,16 @@ class ViewAuth extends HTMLElement{
         <section class="card">
           <h2>${mode==='login'?'Connexion':'Inscription'}</h2>
           <form id="authForm" class="grid" style="gap:12px">
+            ${mode==='register' ? `
+            <div>
+              <label>Prénom</label>
+              <input type="text" name="firstName" required placeholder="Jean"/>
+            </div>
+            <div>
+              <label>Nom</label>
+              <input type="text" name="lastName" required placeholder="Dupont"/>
+            </div>
+            ` : ''}
             <div>
               <label>Email</label>
               <input type="email" name="email" required placeholder="email@example.com"/>
@@ -39,15 +49,16 @@ class ViewAuth extends HTMLElement{
     this.querySelector('#authForm').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const form = new FormData(e.currentTarget);
-      const email = String(form.get('email')||'').trim();
+      const email = String(form.get('email')||'').trim().toLowerCase();
       const password = String(form.get('password')||'').trim();
       const msg = this.querySelector('#msg');
       msg.textContent = '';
       try{
         if(this.mode==='register'){
-          await createUser({ email, password });
-          msg.textContent = 'Compte créé. Vous pouvez vous connecter.';
-          this.render('login');
+          const firstName = String(form.get('firstName')||'').trim();
+          const lastName = String(form.get('lastName')||'').trim();
+          await createUser({ email, password, firstName, lastName });
+          location.hash = '#dashboard';
         } else {
           await login({ email, password });
           location.hash = '#dashboard';

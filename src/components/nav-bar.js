@@ -19,8 +19,10 @@ class NavBar extends HTMLElement{
 
   render(){
     const session = state.session;
+    const userParams = state.userParams;
     const route = location.hash.replace('#','') || 'dashboard';
     const link = (hash, label) => `<a href="#${hash}" class="${route===hash?'active':''}">${label}</a>`;
+    const displayName = userParams?.firstName || session?.email || 'Utilisateur';
 
     this.innerHTML = `
       <nav class="nav">
@@ -34,7 +36,7 @@ class NavBar extends HTMLElement{
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
           ${session ? `
-            <span class="badge">${session.email}</span>
+            <span class="badge">${displayName}</span>
             <button class="ghost" id="logoutBtn">Déconnexion</button>
           ` : `
             ${link('auth','Connexion')}
