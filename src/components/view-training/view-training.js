@@ -1,57 +1,48 @@
-import state, { addTraining, updateTraining, deleteTraining, getUserTrainings, subscribe } from '../lib/state.js';
-import { CATEGORIES } from '../lib/constants.js';
+import state, { addTraining, updateTraining, deleteTraining, getUserTrainings, subscribe } from '../../lib/state.js';
+import { CATEGORIES } from '../../lib/constants.js';
+
+const templateCache = new Map();
+
+async function loadTemplate(path) {
+  if (templateCache.has(path)) {
+    return templateCache.get(path);
+  }
+  const response = await fetch(path);
+  if (!response.ok) throw new Error(`Failed to load template: ${path}`);
+  const html = await response.text();
+  templateCache.set(path, html);
+  return html;
+}
+
+function renderTemplate(template, data = {}) {
+  return template.replace(/<script type="text\/template">([\s\S]*?)<\/script>/g, (match, scriptContent) => {
+    try {
+      const dataKeys = Object.keys(data);
+      const func = new Function('data', `
+        const { ${dataKeys.join(', ')} } = data;
+        let html = '';
+        ${scriptContent}
+        return html;
+      `);
+      return func(data);
+    } catch (error) {
+      console.error('Error executing template script:', error, scriptContent);
+      return '';
+    }
+  });
+}
 
 class ViewTraining extends HTMLElement{
   constructor(){ super(); this.unsubscribe = () => {}; this.editId = null; this.categoryFilter = 'all'; }
-  connectedCallback(){ this.render(); this.unsubscribe = subscribe(()=> this.renderList()); }
+  async connectedCallback(){ await this.render(); this.unsubscribe = subscribe(()=> this.renderList()); }
   disconnectedCallback(){ this.unsubscribe(); }
 
-  render(){
-    this.innerHTML = `
-      <div class="grid two">
-        <section class="card">
-          <h2>Ajouter / modifier une séance</h2>
-          <form id="trainingForm" class="grid two" style="gap:12px">
-            <div>
-              <label>Catégorie</label>
-              <select name="category" required>
-                ${CATEGORIES.map(c=>`<option value="${c.id}">${c.label}</option>`).join('')}
-              </select>
-            </div>
-            <div>
-              <label>Type</label>
-              <input name="type" placeholder="ex: Fractionné, Bench press" required />
-            </div>
-            <div>
-              <label>Durée (min)</label>
-              <input type="number" name="duration" min="1" required />
-            </div>
-            <div>
-              <label>Date</label>
-              <input type="date" name="date" required />
-            </div>
-            <div class="grid" style="grid-column:1/-1">
-              <label>Commentaire</label>
-              <textarea name="note" rows="3" placeholder="Notes"></textarea>
-            </div>
-            <div style="grid-column:1/-1;display:flex;gap:8px">
-              <button type="submit">Enregistrer</button>
-              <button type="button" class="secondary" id="resetBtn">Réinitialiser</button>
-            </div>
-          </form>
-        </section>
-        <section class="card" style="height:500px;overflow:scroll">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <h2>Historique</h2>
-            <select id="filterCat">
-              <option value="all">Toutes catégories</option>
-              ${CATEGORIES.map(c=>`<option value="${c.id}">${c.label}</option>`).join('')}
-            </select>
-          </div>
-          <div id="listWrap"></div>
-        </section>
-      </div>
-    `;
+  async render(){
+    const categoryOptions = CATEGORIES.map(c=>`<option value="${c.id}">${c.label}</option>`).join('');
+    const template = await loadTemplate('/src/components/view-training/view-training.html');
+    this.innerHTML = renderTemplate(template, {
+      categoryOptions
+    });
 
     const form = this.querySelector('#trainingForm');
     form.addEventListener('submit', (e)=>{

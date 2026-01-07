@@ -1,0 +1,37 @@
+<div class="grid three">
+  <section class="card kpi">
+    <span class="value" id="kpiSessions">0</span>
+    <span class="label">Séances cette semaine</span>
+  </section>
+  <section class="card kpi">
+    <span class="value" id="kpiMinutes">0 min</span>
+    <span class="label">Temps total cette semaine</span>
+  </section>
+  <section class="card kpi">
+    <span class="value" id="kpiCalories">0 kcal</span>
+    <span class="label">Calories estimées cette semaine</span>
+  </section>
+</div>
+
+<div class="grid two" style="margin-top:16px">
+  <section class="card">
+    <h2>Répartition par catégorie</h2>
+    <canvas id="pie"></canvas>
+  </section>
+  <section class="card">
+    <h2>Calories et temps - 8 dernières semaines</h2>
+    <canvas id="line"></canvas>
+  </section>
+</div>
+
+<div class="grid two" style="margin-top:16px">
+  <section class="card">
+    <h2>Statut des objectifs</h2>
+    <div id="goalsStatus" style="display:flex;flex-direction:column;gap:16px;padding:16px 0"></div>
+  </section>
+  <section class="card">
+    <h2>Alertes & Rappels</h2>
+    <div id="alerts" style="padding:16px 0"></div>
+  </section>
+</div>
+

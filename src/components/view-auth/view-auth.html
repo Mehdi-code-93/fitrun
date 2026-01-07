@@ -1,0 +1,50 @@
+<div class="grid two">
+  <section class="card">
+    <h2>
+      <script type="text/template">
+        html += isRegister ? 'Inscription' : 'Connexion';
+      </script>
+    </h2>
+    <form id="authForm" class="grid" style="gap:12px">
+      <script type="text/template">
+        if (isRegister) {
+          html += `<div>
+            <label>Prénom</label>
+            <input type="text" name="firstName" required placeholder="Jean"/>
+          </div>`;
+          html += `<div>
+            <label>Nom</label>
+            <input type="text" name="lastName" required placeholder="Dupont"/>
+          </div>`;
+        }
+      </script>
+      <div>
+        <label>Email</label>
+        <input type="email" name="email" required placeholder="email@example.com"/>
+      </div>
+      <div>
+        <label>Mot de passe</label>
+        <input type="password" name="password" required minlength="4"/>
+      </div>
+      <button type="submit">
+        <script type="text/template">
+          html += isRegister ? 'Créer un compte' : 'Se connecter';
+        </script>
+      </button>
+    </form>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);color:var(--muted);text-align:center;font-size:0.9rem">
+      <script type="text/template">
+        html += isRegister ? 'Déjà inscrit ?' : 'Pas de compte ?';
+        html += ` <a href="#" id="toggle" style="color:var(--primary);font-weight:600;text-decoration:none">${isRegister ? 'Se connecter' : 'Créer un compte'}</a>`;
+      </script>
+    </div>
+    <div id="msg" style="margin-top:10px"></div>
+  </section>
+  <section class="card">
+    <h3>Bienvenue sur FitRun</h3>
+    <p style="color:var(--muted);line-height:1.7;margin:0">Suivez vos entraînements, visualisez vos progrès et atteignez vos objectifs fitness avec notre application intuitive.</p>
+    <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border)">
+      <p style="font-size:0.85rem;color:var(--muted);margin:0"><strong>Astuce :</strong> Les données sont stockées localement dans votre navigateur.</p>
+    </div>
+  </section>
+</div>

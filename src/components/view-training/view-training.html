@@ -1,0 +1,47 @@
+<div class="grid two">
+  <section class="card">
+    <h2>Ajouter / modifier une séance</h2>
+    <form id="trainingForm" class="grid two" style="gap:12px">
+      <div>
+        <label>Catégorie</label>
+        <select name="category" required>
+          <script type="text/template">
+            html += categoryOptions;
+          </script>
+        </select>
+      </div>
+      <div>
+        <label>Type</label>
+        <input name="type" placeholder="ex: Fractionné, Bench press" required />
+      </div>
+      <div>
+        <label>Durée (min)</label>
+        <input type="number" name="duration" min="1" required />
+      </div>
+      <div>
+        <label>Date</label>
+        <input type="date" name="date" required />
+      </div>
+      <div class="grid" style="grid-column:1/-1">
+        <label>Commentaire</label>
+        <textarea name="note" rows="3" placeholder="Notes"></textarea>
+      </div>
+      <div style="grid-column:1/-1;display:flex;gap:8px">
+        <button type="submit">Enregistrer</button>
+        <button type="button" class="secondary" id="resetBtn">Réinitialiser</button>
+      </div>
+    </form>
+  </section>
+  <section class="card" style="height:500px;overflow:scroll">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <h2>Historique</h2>
+      <select id="filterCat">
+        <option value="all">Toutes catégories</option>
+        <script type="text/template">
+          html += categoryOptions;
+        </script>
+      </select>
+    </div>
+    <div id="listWrap"></div>
+  </section>
+</div>

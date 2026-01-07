@@ -1,5 +1,18 @@
-import state, { subscribe, getUserTrainings } from '../lib/state.js';
-import { CATEGORIES, getMetByCategory } from '../lib/constants.js';
+import state, { subscribe, getUserTrainings } from '../../lib/state.js';
+import { CATEGORIES, getMetByCategory } from '../../lib/constants.js';
+
+const templateCache = new Map();
+
+async function loadTemplate(path) {
+  if (templateCache.has(path)) {
+    return templateCache.get(path);
+  }
+  const response = await fetch(path);
+  if (!response.ok) throw new Error(`Failed to load template: ${path}`);
+  const html = await response.text();
+  templateCache.set(path, html);
+  return html;
+}
 
 function groupByCategory(rows){
   const map = new Map();
@@ -13,6 +26,7 @@ function kcalFor(row, weightKg){
 }
 
 function weeklyBuckets(rows){
+  const weeks = [];
   const now = new Date();
   for(let i=7; i>=0; i--){
     const d = new Date(now); d.setDate(now.getDate() - i*7);
@@ -36,45 +50,9 @@ function weeklyBuckets(rows){
 
 class ViewDashboard extends HTMLElement{
   constructor(){ super(); this.unsubscribe = () => {}; this.pie = null; this.line = null; }
-  connectedCallback(){
-    this.innerHTML = `
-      <div class="grid three">
-        <section class="card kpi">
-          <span class="value" id="kpiSessions">0</span>
-          <span class="label">Séances cette semaine</span>
-        </section>
-        <section class="card kpi">
-          <span class="value" id="kpiMinutes">0 min</span>
-          <span class="label">Temps total cette semaine</span>
-        </section>
-        <section class="card kpi">
-          <span class="value" id="kpiCalories">0 kcal</span>
-          <span class="label">Calories estimées cette semaine</span>
-        </section>
-      </div>
-
-      <div class="grid two" style="margin-top:16px">
-        <section class="card">
-          <h2>Répartition par catégorie</h2>
-          <canvas id="pie"></canvas>
-        </section>
-        <section class="card">
-          <h2>Calories et temps - 8 dernières semaines</h2>
-          <canvas id="line"></canvas>
-        </section>
-      </div>
-
-      <div class="grid two" style="margin-top:16px">
-        <section class="card">
-          <h2>Statut des objectifs</h2>
-          <div id="goalsStatus" style="display:flex;flex-direction:column;gap:16px;padding:16px 0"></div>
-        </section>
-        <section class="card">
-          <h2>Alertes</h2>
-          <div id="alerts" style="padding:16px 0"></div>
-        </section>
-      </div>
-    `;
+  async connectedCallback(){
+    const template = await loadTemplate('/src/components/view-dashboard/view-dashboard.html');
+    this.innerHTML = template;
     this.unsubscribe = subscribe(()=> this.update());
     this.update();
   }
@@ -123,8 +101,83 @@ class ViewDashboard extends HTMLElement{
     `;
 
     const alerts = [];
+    const today = now.getDay();
+    const daysLeft = today === 0 ? 0 : 7 - today;
+    
+    // Alerte séances
+    if (goals.weeklySessions > 0 && !sessionsReached) {
+      const remaining = goals.weeklySessions - currentSessions;
+      if (daysLeft === 0) {
+        alerts.push({
+          type: 'danger',
+          message: `Objectif séances non atteint ! Il manque ${remaining} séance${remaining > 1 ? 's' : ''}.`
+        });
+      } else if (remaining > daysLeft) {
+        alerts.push({
+          type: 'warning',
+          message: `Attention : ${remaining} séance${remaining > 1 ? 's' : ''} à faire en ${daysLeft} jour${daysLeft > 1 ? 's' : ''}.`
+        });
+      } else {
+        alerts.push({
+          type: 'info',
+          message: `Plus que ${remaining} séance${remaining > 1 ? 's' : ''} pour atteindre votre objectif !`
+        });
+      }
+    }
+    
+    // Alerte calories
+    if (goals.weeklyCalories > 0 && !caloriesReached) {
+      const remaining = Math.round(goals.weeklyCalories - currentCalories);
+      if (daysLeft === 0) {
+        alerts.push({
+          type: 'danger',
+          message: `Objectif calories non atteint ! Il manque ${remaining} kcal.`
+        });
+      } else if (remaining > 500 * daysLeft) {
+        alerts.push({
+          type: 'warning',
+          message: `${remaining} kcal à brûler en ${daysLeft} jour${daysLeft > 1 ? 's' : ''}.`
+        });
+      } else {
+        alerts.push({
+          type: 'info',
+          message: `Plus que ${remaining} kcal pour atteindre votre objectif !`
+        });
+      }
+    }
+    
+    // Message objectifs atteints
+    if (goals.weeklySessions > 0 && sessionsReached && goals.weeklyCalories > 0 && caloriesReached) {
+      alerts.push({
+        type: 'success',
+        message: `Félicitations ! Tous vos objectifs de la semaine sont atteints !`
+      });
+    }
+    
     const alertsWrap = this.querySelector('#alerts');
-    alertsWrap.innerHTML = alerts.length? alerts.map(a=>`<div class="alert">${a}</div>`).join('') : '<div style="color:var(--muted)">Aucune alerte</div>';
+    if (alerts.length === 0) {
+      alertsWrap.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px">Aucune alerte</div>';
+    } else {
+      alertsWrap.innerHTML = alerts.map(a => {
+        let bgColor, borderColor, textColor;
+        switch (a.type) {
+          case 'danger':
+            bgColor = '#fef2f2'; borderColor = '#fecaca'; textColor = '#991b1b';
+            break;
+          case 'warning':
+            bgColor = '#fffbeb'; borderColor = '#fde68a'; textColor = '#92400e';
+            break;
+          case 'success':
+            bgColor = '#f0fdf4'; borderColor = '#bbf7d0'; textColor = '#166534';
+            break;
+          default:
+            bgColor = '#eff6ff'; borderColor = '#bfdbfe'; textColor = '#1e40af';
+        }
+        return `<div style="padding:12px 14px;border-radius:10px;background:${bgColor};border:1px solid ${borderColor};color:${textColor};font-size:0.9rem;margin-bottom:8px">
+          ${a.message}
+        </div>`;
+      }).join('');
+    }
 
 
     const byCat = groupByCategory(rows);

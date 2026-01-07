@@ -1,0 +1,18 @@
+<nav class="nav">
+  <div class="brand">
+    <span>FitRun</span>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <script type="text/template">
+      if (session) {
+        html += `<a href="#dashboard" class="${dashboardActive}">Tableau de bord</a>`;
+        html += `<a href="#training" class="${trainingActive}">Entraînements</a>`;
+        html += `<a href="#goals" class="${goalsActive}">Objectifs</a>`;
+        html += `<a href="#account" class="badge" style="text-decoration:none;cursor:pointer">${displayName}</a>`;
+        html += `<button class="ghost" id="logoutBtn">Déconnexion</button>`;
+      } else {
+        html += `<a href="#auth" class="${authActive}">Connexion</a>`;
+      }
+    </script>
+  </div>
+</nav>

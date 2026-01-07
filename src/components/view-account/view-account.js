@@ -1,54 +1,55 @@
-import state, { updateEmail, updatePassword, subscribe } from '../lib/state.js';
+import state, { updateEmail, updatePassword, subscribe } from '../../lib/state.js';
+
+const templateCache = new Map();
+
+async function loadTemplate(path) {
+  if (templateCache.has(path)) {
+    return templateCache.get(path);
+  }
+  const response = await fetch(path);
+  if (!response.ok) throw new Error(`Failed to load template: ${path}`);
+  const html = await response.text();
+  templateCache.set(path, html);
+  return html;
+}
+
+function renderTemplate(template, data = {}) {
+  return template.replace(/<script type="text\/template">([\s\S]*?)<\/script>/g, (match, scriptContent) => {
+    try {
+      const dataKeys = Object.keys(data);
+      const func = new Function('data', `
+        const { ${dataKeys.join(', ')} } = data;
+        let html = '';
+        ${scriptContent}
+        return html;
+      `);
+      return func(data);
+    } catch (error) {
+      console.error('Error executing template script:', error, scriptContent);
+      return '';
+    }
+  });
+}
 
 class ViewAccount extends HTMLElement{
   constructor(){
     super();
     this.unsubscribe = () => {};
   }
-  connectedCallback(){ 
-    this.render(); 
+  async connectedCallback(){ 
+    await this.render(); 
     this.unsubscribe = subscribe(() => this.render());
   }
   disconnectedCallback(){ 
     this.unsubscribe(); 
   }
 
-  render(){
+  async render(){
     const session = state.session;
-    this.innerHTML = `
-      <div class="grid two">
-        <section class="card">
-          <h2>Compte</h2>
-          <form id="accountForm" class="grid" style="gap:12px">
-            <div>
-              <label>Email</label>
-              <input type="email" name="email" required value="${session?.email || ''}" />
-            </div>
-            <div style="grid-column:1/-1">
-              <button type="submit">Mettre à jour l'email</button>
-            </div>
-            <div id="accountMsg" style="grid-column:1/-1"></div>
-          </form>
-        </section>
-        <section class="card">
-          <h2>Mot de passe</h2>
-          <form id="passwordForm" class="grid" style="gap:12px">
-            <div>
-              <label>Nouveau mot de passe</label>
-              <input type="password" name="password" required minlength="4" autocomplete="new-password" />
-            </div>
-            <div>
-              <label>Confirmer le mot de passe</label>
-              <input type="password" name="passwordConfirm" required minlength="4" autocomplete="new-password" />
-            </div>
-            <div style="grid-column:1/-1">
-              <button type="submit">Changer le mot de passe</button>
-            </div>
-            <div id="passwordMsg" style="grid-column:1/-1"></div>
-          </form>
-        </section>
-      </div>
-    `;
+    const template = await loadTemplate('/src/components/view-account/view-account.html');
+    this.innerHTML = renderTemplate(template, {
+      email: session?.email || ''
+    });
 
     this.querySelector('#accountForm').addEventListener('submit', async (e)=>{
       e.preventDefault();
