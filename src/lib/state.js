@@ -59,10 +59,23 @@ export async function createUser({ email, password, firstName, lastName }){
   await login({ email, password });
   const s = state.session;
   if(!s) throw new Error('Inscription échouée');
+  
+  // Créer les paramètres utilisateur avec prénom et nom
+  const newUserParams = { ...DEFAULT_USER_PARAMS, firstName, lastName };
+  const newGoals = { weeklySessions: 3, weeklyCalories: 2000 };
+  
+  // Enregistrer dans Supabase
   await Promise.all([
-    upsertProfile(s.userId, { ...DEFAULT_USER_PARAMS, firstName, lastName }),
-    upsertGoals(s.userId, { weeklySessions: 3, weeklyCalories: 2000 })
+    upsertProfile(s.userId, newUserParams),
+    upsertGoals(s.userId, newGoals)
   ]);
+  
+  // Mettre à jour immédiatement le state local pour éviter les problèmes de timing
+  _userParams = newUserParams;
+  _goals = newGoals;
+  notify();
+  
+  // Charger le reste des données
   await loadAll();
 }
 
