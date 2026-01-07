@@ -13,7 +13,9 @@ import {
   insertTraining,
   updateTrainingRow,
   deleteTrainingRow,
-  subscribeTrainings
+  subscribeTrainings,
+  updateUserEmail,
+  updateUserPassword
 } from './supabase.js';
 
 const listeners = new Set();
@@ -57,10 +59,23 @@ export async function createUser({ email, password, firstName, lastName }){
   await login({ email, password });
   const s = state.session;
   if(!s) throw new Error('Inscription échouée');
+  
+  // Créer les paramètres utilisateur avec prénom et nom
+  const newUserParams = { ...DEFAULT_USER_PARAMS, firstName, lastName };
+  const newGoals = { weeklySessions: 3, weeklyCalories: 2000 };
+  
+  // Enregistrer dans Supabase
   await Promise.all([
-    upsertProfile(s.userId, { ...DEFAULT_USER_PARAMS, firstName, lastName }),
-    upsertGoals(s.userId, { weeklySessions: 3, weeklyCalories: 2000 })
+    upsertProfile(s.userId, newUserParams),
+    upsertGoals(s.userId, newGoals)
   ]);
+  
+  // Mettre à jour immédiatement le state local pour éviter les problèmes de timing
+  _userParams = newUserParams;
+  _goals = newGoals;
+  notify();
+  
+  // Charger le reste des données
   await loadAll();
 }
 
@@ -85,17 +100,14 @@ export async function logout(){
 export async function addTraining(t){
   if(!_session) return;
   await insertTraining(_session.userId, t);
-  // Le realtime va automatiquement mettre à jour state.trainings via setupRealtime()
 }
 
 export async function updateTraining(id, updates){
   await updateTrainingRow(id, updates);
-  // Le realtime va automatiquement mettre à jour state.trainings via setupRealtime()
 }
 
 export async function deleteTraining(id){
   await deleteTrainingRow(id);
-  // Le realtime va automatiquement mettre à jour state.trainings via setupRealtime()
 }
 
 export function getUserTrainings(){
@@ -132,7 +144,6 @@ function setupRealtime(){
   });
 }
 
-// Override setters to persist to Supabase
 Object.defineProperty(state, 'goals', {
   get(){ return _goals; },
   set(v){ _goals = v; if(_session){ upsertGoals(_session.userId, v).then(()=>notify()); } else { notify(); } }
@@ -142,5 +153,20 @@ Object.defineProperty(state, 'userParams', {
   get(){ return _userParams; },
   set(v){ _userParams = v; if(_session){ upsertProfile(_session.userId, v).then(()=>notify()); } else { notify(); } }
 });
+
+export async function updateEmail(newEmail){
+  if(!_session) throw new Error('Non connecté');
+  const updated = await updateUserEmail(newEmail);
+  if(updated){
+    state.session = { userId: updated.userId, email: updated.email };
+  }
+  return updated;
+}
+
+export async function updatePassword(newPassword){
+  if(!_session) throw new Error('Non connecté');
+  if(!newPassword || newPassword.length < 4) throw new Error('Le mot de passe doit contenir au moins 4 caractères');
+  await updateUserPassword(newPassword);
+}
 
 export default state;

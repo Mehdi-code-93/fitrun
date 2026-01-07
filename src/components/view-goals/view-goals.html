@@ -1,0 +1,56 @@
+<div class="grid two">
+  <section class="card">
+    <h2>Objectifs hebdomadaires</h2>
+    <form id="goalsForm" class="grid two" style="gap:12px">
+      <div>
+        <label>Séances</label>
+        <script type="text/template">
+          html += `<input type="number" name="weeklySessions" min="0" value="${weeklySessions || 0}" />`;
+        </script>
+      </div>
+      <div>
+        <label>Calories</label>
+        <script type="text/template">
+          html += `<input type="number" name="weeklyCalories" min="0" value="${weeklyCalories || 0}" />`;
+        </script>
+      </div>
+      <div style="grid-column:1/-1">
+        <button type="submit">Enregistrer les objectifs</button>
+      </div>
+    </form>
+  </section>
+  <section class="card">
+    <h2>Statut des objectifs</h2>
+    <div id="goalsStatus" style="display:flex;flex-direction:column;gap:16px;padding:16px 0">
+      <script type="text/template">
+        html += goalsStatusContent || '';
+      </script>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Paramètres utilisateur</h2>
+    <form id="paramsForm" class="grid three" style="gap:12px">
+      <div>
+        <label>Poids (kg)</label>
+        <script type="text/template">
+          html += `<input type="number" name="weightKg" min="1" value="${weightKg || 0}" />`;
+        </script>
+      </div>
+      <div>
+        <label>Taille (cm)</label>
+        <script type="text/template">
+          html += `<input type="number" name="heightCm" min="1" value="${heightCm || 0}" />`;
+        </script>
+      </div>
+      <div>
+        <label>Âge</label>
+        <script type="text/template">
+          html += `<input type="number" name="age" min="1" value="${age || 0}" />`;
+        </script>
+      </div>
+      <div style="grid-column:1/-1">
+        <button type="submit">Enregistrer les paramètres</button>
+      </div>
+    </form>
+  </section>
+</div>

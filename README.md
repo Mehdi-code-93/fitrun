@@ -8,7 +8,6 @@ Version statique en JavaScript vanilla avec Web Components, localStorage et Char
 
 ```bash
 python3 -m http.server 5173
-# puis ouvrir http://localhost:5173
 ```
 
 2. Inscrivez-vous via l’écran `Connexion` (les données sont stockées dans localStorage).
