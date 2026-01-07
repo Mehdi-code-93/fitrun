@@ -34,14 +34,13 @@ export function onAuthChange(callback){
   });
 }
 
-// Update user email
+
 export async function updateUserEmail(newEmail){
   const { data, error } = await supabase.auth.updateUser({ email: newEmail });
   if(error) throw error;
   return data?.user ? { userId: data.user.id, email: data.user.email } : null;
 }
 
-// Update user password
 export async function updateUserPassword(newPassword){
   const { data, error } = await supabase.auth.updateUser({ password: newPassword });
   if(error) throw error;

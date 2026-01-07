@@ -16,7 +16,7 @@ function weeklyBuckets(rows){
   const now = new Date();
   for(let i=7; i>=0; i--){
     const d = new Date(now); d.setDate(now.getDate() - i*7);
-    const start = new Date(d); const day = (d.getDay()+6)%7; // ISO week: Monday start
+    const start = new Date(d); const day = (d.getDay()+6)%7;
     start.setDate(d.getDate()-day); start.setHours(0,0,0,0);
     const end = new Date(start); end.setDate(start.getDate()+7);
     weeks.push({ start, end, kcal:0, minutes:0, label: `${start.getDate()}/${start.getMonth()+1}` });
@@ -92,7 +92,6 @@ class ViewDashboard extends HTMLElement{
     this.querySelector('#kpiMinutes').textContent = `${totalMinutes} min`;
     this.querySelector('#kpiCalories').textContent = `${Math.round(totalKcal)} kcal`;
 
-    // Statut des objectifs
     const goals = state.goals;
     const currentSessions = weekRows.length;
     const currentCalories = totalKcal;
@@ -123,7 +122,6 @@ class ViewDashboard extends HTMLElement{
       </div>
     `;
 
-    // Alerts (pour les alertes générales si besoin)
     const alerts = [];
     const alertsWrap = this.querySelector('#alerts');
     alertsWrap.innerHTML = alerts.length? alerts.map(a=>`<div class="alert">${a}</div>`).join('') : '<div style="color:var(--muted)">Aucune alerte</div>';
@@ -144,7 +142,6 @@ class ViewDashboard extends HTMLElement{
       });
     }
 
-    // Line: calories and minutes weekly
     const buckets = weeklyBuckets(rows);
     const lLabels = buckets.map(b=>b.label);
     const kcalSeries = buckets.map(b=>Math.round(b.kcal));

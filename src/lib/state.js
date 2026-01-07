@@ -87,17 +87,14 @@ export async function logout(){
 export async function addTraining(t){
   if(!_session) return;
   await insertTraining(_session.userId, t);
-  // Le realtime va automatiquement mettre à jour state.trainings via setupRealtime()
 }
 
 export async function updateTraining(id, updates){
   await updateTrainingRow(id, updates);
-  // Le realtime va automatiquement mettre à jour state.trainings via setupRealtime()
 }
 
 export async function deleteTraining(id){
   await deleteTrainingRow(id);
-  // Le realtime va automatiquement mettre à jour state.trainings via setupRealtime()
 }
 
 export function getUserTrainings(){
@@ -134,7 +131,6 @@ function setupRealtime(){
   });
 }
 
-// Override setters to persist to Supabase
 Object.defineProperty(state, 'goals', {
   get(){ return _goals; },
   set(v){ _goals = v; if(_session){ upsertGoals(_session.userId, v).then(()=>notify()); } else { notify(); } }
@@ -145,7 +141,6 @@ Object.defineProperty(state, 'userParams', {
   set(v){ _userParams = v; if(_session){ upsertProfile(_session.userId, v).then(()=>notify()); } else { notify(); } }
 });
 
-// Update user email
 export async function updateEmail(newEmail){
   if(!_session) throw new Error('Non connecté');
   const updated = await updateUserEmail(newEmail);
@@ -155,7 +150,6 @@ export async function updateEmail(newEmail){
   return updated;
 }
 
-// Update user password
 export async function updatePassword(newPassword){
   if(!_session) throw new Error('Non connecté');
   if(!newPassword || newPassword.length < 4) throw new Error('Le mot de passe doit contenir au moins 4 caractères');
