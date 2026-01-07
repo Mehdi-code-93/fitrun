@@ -1,5 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
+// Récupère la config depuis env.js (chargé dans index.html)
 const cfg = (typeof window !== 'undefined' && window.__FITDASH_ENV) ? window.__FITDASH_ENV : {};
 export const supabase = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
 
@@ -48,6 +49,7 @@ export async function updateUserPassword(newPassword){
 }
 
 export async function upsertProfile(userId, { weightKg, heightCm, age, firstName, lastName }){
+  // Mapping camelCase JS vers snake_case DB
   const profile = { id: userId, weight_kg: weightKg, height_cm: heightCm, age };
   if(firstName !== undefined) profile.first_name = firstName;
   if(lastName !== undefined) profile.last_name = lastName;
@@ -59,6 +61,8 @@ export async function getProfile(userId){
   const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
   if(error) throw error;
   if(!data) return null;
+  
+  // Conversion snake_case DB vers camelCase JS
   return { 
     weightKg: data.weight_kg, 
     heightCm: data.height_cm, 
@@ -81,9 +85,20 @@ export async function getGoals(userId){
 }
 
 export async function listTrainings(userId){
+  // Récupère les entraînements triés par date décroissante (plus récents en premier)
   const { data, error } = await supabase.from('trainings').select('*').eq('user_id', userId).order('date', { ascending: false });
   if(error) throw error;
-  return (data||[]).map(r=>({ id: r.id, userId: r.user_id, category: r.category, type: r.type, durationMin: r.duration_min, date: r.date, note: r.note||'' }));
+  
+  // Normalisation des données (snake_case -> camelCase)
+  return (data||[]).map(r=>({ 
+    id: r.id, 
+    userId: r.user_id, 
+    category: r.category, 
+    type: r.type, 
+    durationMin: r.duration_min, 
+    date: r.date, 
+    note: r.note||'' 
+  }));
 }
 
 export async function insertTraining(userId, t){
@@ -105,11 +120,19 @@ export async function deleteTrainingRow(id){
   if(error) throw error;
 }
 
+// Abonnement temps réel aux changements sur la table trainings
 export function subscribeTrainings(userId, onChange){
   const channel = supabase.channel('trainings-changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'trainings', filter: `user_id=eq.${userId}` }, (payload)=>{
+    .on('postgres_changes', { 
+      event: '*', // écoute INSERT, UPDATE, DELETE
+      schema: 'public', 
+      table: 'trainings', 
+      filter: `user_id=eq.${userId}` // seulement pour cet utilisateur
+    }, (payload)=>{
       onChange(payload);
     })
     .subscribe();
+  
+  // Retourne une fonction pour se désabonner
   return () => { supabase.removeChannel(channel); };
 }

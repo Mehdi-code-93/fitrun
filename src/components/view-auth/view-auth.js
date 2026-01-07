@@ -60,13 +60,16 @@ class ViewAuth extends HTMLElement{
       const password = String(form.get('password')||'').trim();
       const msg = this.querySelector('#msg');
       msg.textContent = '';
+      
       try{
         if(this.mode==='register'){
+          // Mode inscription : récupère aussi prénom et nom
           const firstName = String(form.get('firstName')||'').trim();
           const lastName = String(form.get('lastName')||'').trim();
           await createUser({ email, password, firstName, lastName });
           location.hash = '#dashboard';
         } else {
+          // Mode connexion
           await login({ email, password });
           location.hash = '#dashboard';
         }

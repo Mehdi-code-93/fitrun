@@ -13,10 +13,12 @@ async function loadTemplate(path) {
   return html;
 }
 
+// Remplace les balises <script type="text/template"> par le HTML généré dynamiquement
 function renderTemplate(template, data = {}) {
   return template.replace(/<script type="text\/template">([\s\S]*?)<\/script>/g, (match, scriptContent) => {
     try {
       const dataKeys = Object.keys(data);
+      // On crée une fonction dynamique qui a accès aux données
       const func = new Function('data', `
         const { ${dataKeys.join(', ')} } = data;
         let html = '';
@@ -48,21 +50,25 @@ class AppRoot extends HTMLElement{
     window.removeEventListener('app:navigate', this.handleNavigate);
     this.unsubscribe();
   }
+  // Gestion de la navigation client-side basée sur le hash URL
   handleNavigate(){
     const session = state.session;
     const route = location.hash.replace('#','');
     const outlet = this.querySelector('#outlet');
 
+    // Redirection vers auth si pas connecté
     if(!session && route !== 'auth'){
       location.hash = '#auth';
       return;
     }
 
+    // Redirection vers dashboard si connecté mais sur auth ou page vide
     if(session && (route === 'auth' || !route)){
       location.hash = '#dashboard';
       return;
     }
 
+    // Mapping route -> composant
     let viewTag = 'view-dashboard';
     if(route === 'auth') viewTag = 'view-auth';
     else if(route === 'training') viewTag = 'view-training';

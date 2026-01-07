@@ -33,8 +33,16 @@ function renderTemplate(template, data = {}) {
 }
 
 class ViewTraining extends HTMLElement{
-  constructor(){ super(); this.unsubscribe = () => {}; this.editId = null; this.categoryFilter = 'all'; }
-  async connectedCallback(){ await this.render(); this.unsubscribe = subscribe(()=> this.renderList()); }
+  constructor(){ 
+    super(); 
+    this.unsubscribe = () => {}; 
+    this.editId = null; // ID de la séance en cours d'édition
+    this.categoryFilter = 'all'; 
+  }
+  async connectedCallback(){ 
+    await this.render(); 
+    this.unsubscribe = subscribe(()=> this.renderList()); // On met à jour la liste si le state change
+  }
   disconnectedCallback(){ this.unsubscribe(); }
 
   async render(){
@@ -47,7 +55,10 @@ class ViewTraining extends HTMLElement{
     const form = this.querySelector('#trainingForm');
     form.addEventListener('submit', (e)=>{
       e.preventDefault();
-      const session = state.session; if(!session) return;
+      const session = state.session; 
+      if(!session) return;
+      
+      // On récupère les données du formulaire
       const data = Object.fromEntries(new FormData(form).entries());
       const payload = {
         userId: session.userId,
@@ -57,8 +68,14 @@ class ViewTraining extends HTMLElement{
         date: data.date,
         note: (data.note||'').trim()
       };
-      if(this.editId){ updateTraining(this.editId, payload); this.editId = null; }
-      else { addTraining(payload); }
+      
+      // Si on est en mode édition, on update, sinon on crée
+      if(this.editId){ 
+        updateTraining(this.editId, payload); 
+        this.editId = null; 
+      } else { 
+        addTraining(payload); 
+      }
       form.reset();
       this.renderList();
     });
@@ -69,11 +86,19 @@ class ViewTraining extends HTMLElement{
   }
 
   renderList(){
-    const wrap = this.querySelector('#listWrap'); if(!wrap) return;
+    const wrap = this.querySelector('#listWrap'); 
+    if(!wrap) return;
+    
+    // Tri par date décroissante (plus récent en premier)
     let rows = getUserTrainings().sort((a,b)=> b.date.localeCompare(a.date));
+    
+    // Application du filtre par catégorie
     if(this.categoryFilter !== 'all') rows = rows.filter(r => r.category === this.categoryFilter);
 
-    if(rows.length===0){ wrap.innerHTML = `<div class="empty">Aucune séance</div>`; return; }
+    if(rows.length===0){ 
+      wrap.innerHTML = `<div class="empty">Aucune séance</div>`; 
+      return; 
+    }
 
     wrap.innerHTML = `
       <table class="table">

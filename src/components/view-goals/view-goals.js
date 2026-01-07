@@ -37,10 +37,12 @@ function kcalFor(row, weightKg){
   return met * weightKg * (row.durationMin/60);
 }
 
+// Génère le HTML pour l'affichage du statut des objectifs avec barres de progression
 function renderGoalsStatus(goals, currentSessions, currentCalories){
   const sessionsReached = goals.weeklySessions > 0 && currentSessions >= goals.weeklySessions;
   const caloriesReached = goals.weeklyCalories > 0 && currentCalories >= goals.weeklyCalories;
   
+  // Calcul du pourcentage de progression (capped à 100%)
   const sessionsProgress = goals.weeklySessions > 0 ? Math.min(100, (currentSessions / goals.weeklySessions) * 100) : 0;
   const caloriesProgress = goals.weeklyCalories > 0 ? Math.min(100, (currentCalories / goals.weeklyCalories) * 100) : 0;
   
@@ -119,16 +121,27 @@ class ViewGoals extends HTMLElement{
       age: params.age
     });
 
+    // Sauvegarde des objectifs (auto-sauvegarde dans Supabase via le setter)
     this.querySelector('#goalsForm').addEventListener('submit', (e)=>{
       e.preventDefault();
       const d = Object.fromEntries(new FormData(e.currentTarget).entries());
-      state.goals = { weeklySessions: Number(d.weeklySessions||0), weeklyCalories: Number(d.weeklyCalories||0) };
+      state.goals = { 
+        weeklySessions: Number(d.weeklySessions||0), 
+        weeklyCalories: Number(d.weeklyCalories||0) 
+      };
     });
 
+    // Sauvegarde des paramètres utilisateur
     this.querySelector('#paramsForm').addEventListener('submit', (e)=>{
       e.preventDefault();
       const d = Object.fromEntries(new FormData(e.currentTarget).entries());
-      state.userParams = { weightKg: Number(d.weightKg||0), heightCm: Number(d.heightCm||0), age: Number(d.age||0) };
+      state.userParams = { 
+        weightKg: Number(d.weightKg||0), 
+        heightCm: Number(d.heightCm||0), 
+        age: Number(d.age||0),
+        firstName: params.firstName, // on conserve prénom/nom
+        lastName: params.lastName
+      };
     });
   }
 }

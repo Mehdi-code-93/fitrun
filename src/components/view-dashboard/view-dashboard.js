@@ -1,6 +1,7 @@
 import state, { subscribe, getUserTrainings } from '../../lib/state.js';
 import { CATEGORIES, getMetByCategory } from '../../lib/constants.js';
 
+// Cache simple pour éviter de recharger les templates à chaque fois
 const templateCache = new Map();
 
 async function loadTemplate(path) {
@@ -14,27 +15,38 @@ async function loadTemplate(path) {
   return html;
 }
 
+// Compte le nombre de séances par catégorie pour le camembert
 function groupByCategory(rows){
   const map = new Map();
   for(const r of rows){ map.set(r.category, (map.get(r.category)||0) + 1); }
   return map;
 }
 
+// Calcule les calories selon la formule MET * poids * durée
 function kcalFor(row, weightKg){
   const met = getMetByCategory(row.category);
-  return met * weightKg * (row.durationMin/60);
+  return met * weightKg * (row.durationMin/60); // duréeMin/60 pour convertir en heures
 }
 
+// Crée 8 buckets de semaines (du lundi au dimanche) pour le graphique temporel
 function weeklyBuckets(rows){
   const weeks = [];
   const now = new Date();
+  
+  // On génère 8 semaines en remontant depuis aujourd'hui
   for(let i=7; i>=0; i--){
-    const d = new Date(now); d.setDate(now.getDate() - i*7);
-    const start = new Date(d); const day = (d.getDay()+6)%7;
-    start.setDate(d.getDate()-day); start.setHours(0,0,0,0);
-    const end = new Date(start); end.setDate(start.getDate()+7);
+    const d = new Date(now); 
+    d.setDate(now.getDate() - i*7);
+    const start = new Date(d); 
+    const day = (d.getDay()+6)%7; // Calcule le lundi de la semaine
+    start.setDate(d.getDate()-day); 
+    start.setHours(0,0,0,0);
+    const end = new Date(start); 
+    end.setDate(start.getDate()+7);
     weeks.push({ start, end, kcal:0, minutes:0, label: `${start.getDate()}/${start.getMonth()+1}` });
   }
+  
+  // On répartit les séances dans les bonnes semaines
   for(const r of rows){
     const date = new Date(r.date);
     for(const w of weeks){
@@ -61,7 +73,14 @@ class ViewDashboard extends HTMLElement{
   update(){
     const rows = getUserTrainings();
     const weightKg = state.userParams.weightKg;
-    const now = new Date(); const monday = new Date(now); monday.setDate(now.getDate()-((now.getDay()+6)%7)); monday.setHours(0,0,0,0);
+    
+    // Calcul du lundi de la semaine courante pour les KPI hebdomadaires
+    const now = new Date(); 
+    const monday = new Date(now); 
+    monday.setDate(now.getDate()-((now.getDay()+6)%7)); 
+    monday.setHours(0,0,0,0);
+    
+    // On filtre les séances de la semaine
     const weekRows = rows.filter(r => new Date(r.date) >= monday);
     const totalMinutes = weekRows.reduce((s,r)=>s+r.durationMin,0);
     const totalKcal = weekRows.reduce((s,r)=> s + kcalFor(r, weightKg), 0);
@@ -100,11 +119,10 @@ class ViewDashboard extends HTMLElement{
       </div>
     `;
 
+    // Génération des alertes selon l'avancement des objectifs
     const alerts = [];
     const today = now.getDay();
-    const daysLeft = today === 0 ? 0 : 7 - today;
-    
-    // Alerte séances
+    const daysLeft = today === 0 ? 0 : 7 - today; // Jours restants dans la semaine
     if (goals.weeklySessions > 0 && !sessionsReached) {
       const remaining = goals.weeklySessions - currentSessions;
       if (daysLeft === 0) {
@@ -180,14 +198,21 @@ class ViewDashboard extends HTMLElement{
     }
 
 
+    // Préparation des données pour le camembert (répartition par catégorie)
     const byCat = groupByCategory(rows);
     const labels = CATEGORIES.map(c=>c.label);
     const data = CATEGORIES.map(c=> byCat.get(c.id)||0);
     const colors = ['#4f8cff','#22c55e','#f59e0b','#a78bfa','#f472b6','#60a5fa'];
 
+    // Mise à jour ou création du graphique camembert
     const pieCtx = this.querySelector('#pie');
-    if(this.pie){ this.pie.data.labels = labels; this.pie.data.datasets[0].data = data; this.pie.update(); }
-    else {
+    if(this.pie){ 
+      // Si le graphique existe déjà, on met juste à jour les données
+      this.pie.data.labels = labels; 
+      this.pie.data.datasets[0].data = data; 
+      this.pie.update(); 
+    } else {
+      // Sinon on le crée pour la première fois
       this.pie = new Chart(pieCtx, {
         type:'pie',
         data:{ labels, datasets:[{ data, backgroundColor: colors }] },
@@ -195,10 +220,13 @@ class ViewDashboard extends HTMLElement{
       });
     }
 
+    // Préparation des données pour le graphique temporel (8 dernières semaines)
     const buckets = weeklyBuckets(rows);
     const lLabels = buckets.map(b=>b.label);
     const kcalSeries = buckets.map(b=>Math.round(b.kcal));
     const minutesSeries = buckets.map(b=>b.minutes);
+    
+    // Mise à jour ou création du graphique en courbe
     const lineCtx = this.querySelector('#line');
     if(this.line){
       this.line.data.labels = lLabels;
